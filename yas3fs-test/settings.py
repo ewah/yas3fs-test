@@ -12,9 +12,9 @@ from boto.s3.key import Key
 PYTHON = "/usr/bin/python"
 YAS3FS = "/home/ewah/git/yas3fs-ewah/yas3fs/__init__.py"
 
-AWS_ACCESS_KEY_ID='AKIAIIBZRWEPEQVLNVIQ'
-AWS_SECRET_ACCESS_KEY='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'
-AWS_TOPIC='arn:aws:sns:us-west-2:757791176761:ewah-s3fs'
+AWS_ACCESS_KEY_ID='AAAAAAAAAAAAAAAAAAAA'
+AWS_SECRET_ACCESS_KEY='XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+AWS_TOPIC='arn:aws:sns:us-west-2:nnnnnnnnnnnn:ewah-s3fs'
 AWS_REGION='us-west-2'
 
 base = {
