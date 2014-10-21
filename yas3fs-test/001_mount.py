@@ -45,12 +45,32 @@ def test_prep_s3():
 
 		# second connection gets a attr
 		k2 = Key(settings.mount[point]['conn2_bucket'])
+
+		k2 = Key(settings.mount[point]['conn2_bucket'])
+		logging.error(k2)
+
+
 		assert_equals(k.metadata['yas3fs_mount_test'], "HELLO? " + point)
 
 
 def test_mount_all():
 	for point in settings.mount:
-		p = Popen(settings.mount[point]['command'], shell=True, env=settings.mount[point]['env'], stdout=None, stderr=None)
+		logging.error(settings.mount[point]['command'])
 
-	time.sleep(10)		
+		p = Popen(settings.mount[point]['command'], shell=True, env=settings.mount[point]['env'], stdout=None, stderr=None)
+		p.communicate()
+
+	for point in settings.mount:
+		found = 0
+		for tries in (1,2,3):
+			p = Popen('mount | grep ' + settings.mount[point]['local_path'], shell = True, stdout=PIPE)
+			mount_rt = p.communicate()
+
+			if mount_rt[0]:
+				found = 1
+				break
+			time.sleep(1)
+
+		assert_equals(found, 1)
+
 
