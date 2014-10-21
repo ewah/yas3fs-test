@@ -48,9 +48,8 @@ def test_make_directory_a():
 	local_b_stat = os.stat(local_b_file)
 	assert_equals(os.path.exists(local_b_file), True)
 
-'''
-def test_make_utf8_directory_a():
-	fname = "/test_£_new_dir/"
+def test_make_subdirectory_a():
+	fname = "/test_new_dir/test_subdirectory/"
 	local_file =  settings.mount['a']['local_path'] + fname
 	local_b_file =  settings.mount['b']['local_path'] + fname
 	s3_file =  settings.mount['a']['s3_path'] + fname
@@ -75,7 +74,6 @@ def test_make_utf8_directory_a():
 	# can the other mount see it?
 	local_b_stat = os.stat(local_b_file)
 	assert_equals(os.path.exists(local_b_file), True)
-'''
 
 
 def test_write_empty_file_a():
@@ -297,11 +295,42 @@ def test_chmod_644_file_a():
 	assert_equals(local_b_stat.st_gid, 0)
 	assert_equals(local_b_stat.st_mode, 33188)
 
-def test_create_sym_link_a():
-
+def test_create_via_cp_a():
 	src_fname = "/etc/passwd"
 
-	fname = "/test_new_dir/test_passwd_sym_link"
+	fname = "/test_new_dir/test_cp_file.txt"
+	local_file =  settings.mount['a']['local_path'] + fname
+	local_b_file =  settings.mount['b']['local_path'] + fname
+	s3_file =  settings.mount['a']['s3_path'] + fname
+
+	p = Popen("cp " +  src_fname + " " + local_file, shell=True)
+	p.communicate()
+
+	src_stat = os.stat(src_fname)
+
+	local_stat = os.stat(local_file)
+	assert_equals(local_stat.st_size, src_stat.st_size)
+
+	# takes 1 second to catch up?!
+	time.sleep(1)
+
+	# what does boto say?
+	k = settings.mount['a']['conn_bucket'].get_key(s3_file)
+	s3_stat = json.loads(k.metadata['attr'])
+	assert_equals(k.size, src_stat.st_size)
+	assert_equals(s3_stat['st_size'], src_stat.st_size)
+	assert_equals(s3_stat['st_uid'], 0)
+	assert_equals(s3_stat['st_gid'], 0)
+
+	# can the other mount see it?
+	local_b_stat = os.stat(local_b_file)
+	assert_equals(local_b_stat.st_size, src_stat.st_size)
+
+
+def test_create_sym_link_a():
+	src_fname = "/etc/passwd"
+
+	fname = "/test_new_dir/test_passwd_sym_link_b"
 	local_file =  settings.mount['a']['local_path'] + fname
 	local_b_file =  settings.mount['b']['local_path'] + fname
 	s3_file =  settings.mount['a']['s3_path'] + fname
@@ -312,6 +341,8 @@ def test_create_sym_link_a():
 	src_stat = os.stat(src_fname)
 
 	# can i access it locally?
+	local_lstat = os.lstat(local_file)
+
 	local_stat = os.stat(local_file)
 	assert_equals(local_stat.st_size, src_stat.st_size)
 

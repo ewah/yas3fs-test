@@ -21,8 +21,38 @@ run with nosetest -v
 def test_ok():
 	''' just checking'''
 
+def getbasedir():
+	return "/test£_new_dir_h/"
+
 def test_make_directory_a():
-	fname = u"/test£_new_dir/"
+	fname = getbasedir()
+	local_file =  settings.mount['a']['local_path'] + fname
+	local_b_file =  settings.mount['b']['local_path'] + fname
+	s3_file =  settings.mount['a']['s3_path'] + fname
+
+	p = Popen("mkdir " + local_file, shell=True)
+	p.communicate()
+
+	# can i access it locally?
+	assert_equals(os.path.exists(local_file), True)
+
+	# takes 1 second to catch up?!
+	time.sleep(1)
+
+	# what does boto say?
+	k = settings.mount['a']['conn_bucket'].get_key(s3_file)
+	s3_stat = json.loads(k.metadata['attr'])
+	assert_equals(s3_stat['st_size'], 0)
+	assert_equals(s3_stat['st_uid'], 0)
+	assert_equals(s3_stat['st_gid'], 0)
+	# logging.error(k.metadata)
+
+	# can the other mount see it?
+	local_b_stat = os.stat(local_b_file)
+	assert_equals(os.path.exists(local_b_file), True)
+
+def test_make_subdirectory_a():
+	fname = getbasedir() + "test£_subdirectory/"
 	local_file =  settings.mount['a']['local_path'] + fname
 	local_b_file =  settings.mount['b']['local_path'] + fname
 	s3_file =  settings.mount['a']['s3_path'] + fname
@@ -51,7 +81,7 @@ def test_make_directory_a():
 def test_write_empty_file_a():
 	# writes an empty file to mount point 'a'
 
-	fname = u"/test£_new_dir/test£_write_empty_file_a.txt"
+	fname = getbasedir() + "test£_write_empty_file_a.txt"
 	local_file =  settings.mount['a']['local_path'] + fname
 	local_b_file =  settings.mount['b']['local_path'] + fname
 	s3_file =  settings.mount['a']['s3_path'] + fname
@@ -84,11 +114,12 @@ def test_write_empty_file_a():
 def test_write_20byte_file_a():
 	# writes an empty file to mount point 'a'
 
-	fname = u"/test£_new_dir/test£_write_20byte_file_a.txt"
+	fname = getbasedir() + "test£_write_20byte_file_a.txt"
 	local_file =  settings.mount['a']['local_path'] + fname
 	local_b_file =  settings.mount['b']['local_path'] + fname
 	s3_file =  settings.mount['a']['s3_path'] + fname
 
+	print ("echo -n '12345678901234567890' >  " + local_file)
 	p = Popen("echo -n '12345678901234567890' >  " + local_file, shell=True)
 	p.communicate()
 
@@ -115,7 +146,7 @@ def test_write_20byte_file_a():
 	assert_equals(local_b_stat.st_gid, 0)
 
 def test_chown_1000_1000_file_a():
-	fname = u"/test£_new_dir/test£_chown_1000_1000_file_a.txt"
+	fname = getbasedir() + "test£_chown_1000_1000_file_a.txt"
 	local_file =  settings.mount['a']['local_path'] + fname
 	local_b_file =  settings.mount['b']['local_path'] + fname
 	s3_file =  settings.mount['a']['s3_path'] + fname
@@ -149,7 +180,7 @@ def test_chown_1000_1000_file_a():
 	assert_equals(local_b_stat.st_gid, 1000)
 
 def test_utime_1_file_a():
-	fname = u"/test£_new_dir/test£_utime_1_file_a.txt"
+	fname = getbasedir() + "test£_utime_1_file_a.txt"
 	local_file =  settings.mount['a']['local_path'] + fname
 	local_b_file =  settings.mount['b']['local_path'] + fname
 	s3_file =  settings.mount['a']['s3_path'] + fname
@@ -196,7 +227,7 @@ def test_utime_1_file_a():
 #	assert_equals(local_b_stat.st_ctime, 1)
 
 def test_chmod_000_file_a():
-	fname = u"/test£_new_dir/test£_chmod_000_file_a.txt"
+	fname = getbasedir() + "test£_chmod_000_file_a.txt"
 	local_file =  settings.mount['a']['local_path'] + fname
 	local_b_file =  settings.mount['b']['local_path'] + fname
 	s3_file =  settings.mount['a']['s3_path'] + fname
@@ -232,7 +263,7 @@ def test_chmod_000_file_a():
 	assert_equals(local_b_stat.st_mode, 32768)
 
 def test_chmod_644_file_a():
-	fname = u"/test£_new_dir/test£_chmod_000_file_a.txt"
+	fname = getbasedir() + "test£_chmod_000_file_a.txt"
 	local_file =  settings.mount['a']['local_path'] + fname
 	local_b_file =  settings.mount['b']['local_path'] + fname
 	s3_file =  settings.mount['a']['s3_path'] + fname
@@ -267,11 +298,42 @@ def test_chmod_644_file_a():
 	assert_equals(local_b_stat.st_gid, 0)
 	assert_equals(local_b_stat.st_mode, 33188)
 
-def test_create_sym_link_a():
-
+def test_create_via_cp_a():
 	src_fname = "/etc/passwd"
 
-	fname = u"/test£_new_dir/test£_passwd_sym_link"
+	fname = getbasedir() + "test£_cp_file.txt"
+	local_file =  settings.mount['a']['local_path'] + fname
+	local_b_file =  settings.mount['b']['local_path'] + fname
+	s3_file =  settings.mount['a']['s3_path'] + fname
+
+	p = Popen("cp " +  src_fname + " " + local_file, shell=True)
+	p.communicate()
+
+	src_stat = os.stat(src_fname)
+
+	local_stat = os.stat(local_file)
+	assert_equals(local_stat.st_size, src_stat.st_size)
+
+	# takes 1 second to catch up?!
+	time.sleep(1)
+
+	# what does boto say?
+	k = settings.mount['a']['conn_bucket'].get_key(s3_file)
+	s3_stat = json.loads(k.metadata['attr'])
+	assert_equals(k.size, src_stat.st_size)
+	assert_equals(s3_stat['st_size'], src_stat.st_size)
+	assert_equals(s3_stat['st_uid'], 0)
+	assert_equals(s3_stat['st_gid'], 0)
+
+	# can the other mount see it?
+	local_b_stat = os.stat(local_b_file)
+	assert_equals(local_b_stat.st_size, src_stat.st_size)
+
+
+def test_create_sym_link_a():
+	src_fname = "/etc/passwd"
+
+	fname = getbasedir() + "test£_passwd_sym_link"
 	local_file =  settings.mount['a']['local_path'] + fname
 	local_b_file =  settings.mount['b']['local_path'] + fname
 	s3_file =  settings.mount['a']['s3_path'] + fname
@@ -282,6 +344,7 @@ def test_create_sym_link_a():
 	src_stat = os.stat(src_fname)
 
 	# can i access it locally?
+	local_lstat = os.lstat(local_file)
 	local_stat = os.stat(local_file)
 	assert_equals(local_stat.st_size, src_stat.st_size)
 
@@ -299,4 +362,3 @@ def test_create_sym_link_a():
 	# can the other mount see it?
 	local_b_stat = os.stat(local_b_file)
 	assert_equals(local_b_stat.st_size, src_stat.st_size)
-

@@ -10,23 +10,23 @@ from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 
 PYTHON = "/usr/bin/python"
-YAS3FS = "/home/ewah/git/yas3fs-ewah/yas3fs/__init__.py"
+YAS3FS = "/usr/bin/yas3fs"
 
 AWS_ACCESS_KEY_ID='AAAAAAAAAAAAAAAAAAAA'
 AWS_SECRET_ACCESS_KEY='XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
-AWS_TOPIC='arn:aws:sns:us-west-2:nnnnnnnnnnnn:ewah-s3fs'
-AWS_REGION='us-west-2'
+AWS_TOPIC='arn:aws:sns:rrrrrr:888888888888:xxxxxx'
+AWS_REGION='rrrrrrrrr'
 
 base = {
 	's3_bucket' : 's3.140507',
 	's3_path' : '/t',
-	'local_path' : 'mnt',
-	'cache_path' : '/home/ewah/yas3fs-test/cache',
-	'log_path' : 'logs'
+	'local_path' : '/tmp/yas3fs-test/mnt',
+	'cache_path' : '/tmp/yas3fs-test/cache',
+	'log_path' : '/tmp/yas3fs-test/logs'
 }
 
 run_date = datetime.datetime.now()
-run_id = run_date.strftime("%Y%m%d")
+run_id = run_date.strftime("%y%m%d")
 
 base_options = [
 		'-recheck-s3',
