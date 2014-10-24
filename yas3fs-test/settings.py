@@ -4,6 +4,7 @@
 import os, sys
 import datetime
 import time
+import logging
 
 import boto
 from boto.s3.connection import S3Connection
@@ -14,35 +15,31 @@ YAS3FS = "/usr/bin/yas3fs"
 
 AWS_ACCESS_KEY_ID='AAAAAAAAAAAAAAAAAAAA'
 AWS_SECRET_ACCESS_KEY='XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+
 AWS_TOPIC='arn:aws:sns:rrrrrr:888888888888:xxxxxx'
 AWS_REGION='rrrrrrrrr'
 
 base = {
-	's3_bucket' : 's3.140507',
-	's3_path' : '/t',
+	's3_bucket' : 'BBBBBBBBBBBBBBBBBBBBBBBBB', # w/o s3://
+	's3_path' : '/pppppppppppppp',
 	'local_path' : '/tmp/yas3fs-test/mnt',
 	'cache_path' : '/tmp/yas3fs-test/cache',
 	'log_path' : '/tmp/yas3fs-test/logs'
 }
 
+file = {
+	'small' : '/tmp/apache.saml.cache',
+	'large' : '/home/ec10176/140127_pre.tar'
+}
+
 run_date = datetime.datetime.now()
 run_id = run_date.strftime("%y%m%d")
 
-base_options = [
-		'-recheck-s3',
-		'--region', AWS_REGION,
-		'--topic', AWS_TOPIC,
-		'--nonempty'
-		'--s3-num', '2'
-		'--with-plugin-class RecoverYas3fsPlugin'
-		'--new-queue-with-hostname',
-		'--cache-on-disk', '0'
-		]
+mount_points = ('a', 'b')
 
 mount = {}
 
-# for point in ['a', 'b', 'c', 'd']:
-for point in ['a', 'b']:
+for point in mount_points:
 	mount[point] = {
 		's3_path' : base['s3_path'] + '/' + run_id,		# same mount point
 		'local_path' : base['local_path'] + '/' + run_id + '/' + point,
@@ -57,28 +54,41 @@ for point in ['a', 'b']:
 	mount[point]['conn_bucket'] = mount[point]['conn'].get_bucket(mount[point]['s3_bucket'])
 	mount[point]['conn2_bucket'] = mount[point]['conn2'].get_bucket(mount[point]['s3_bucket'])
 
-	mount[point]['command'] = " ".join([
+	cmd = [
 			PYTHON,
 			YAS3FS,
 			"--debug",
 			"s3://" +  mount[point]['s3_bucket'] + mount[point]['s3_path'],
 			mount[point]['local_path'],
-			"--recheck-s3", 
+			]
+
+	if len(mount_points) > 1:
+		cmd += [
 			"--region", AWS_REGION,
+			"--topic", AWS_TOPIC,
+			"--new-queue-with-hostname",
+		]
+
+	cmd += [
 			"--cache-path" , mount[point]['cache_path'], 
+
+			"--recheck-s3", 
 			"--nonempty", 
 			"--s3-num=5", 
 			"--with-plugin-class", "RecoverYas3fsPlugin", 
-			"--topic", AWS_TOPIC,
-			"--new-queue-with-hostname",
 			"--aws-managed-encryption", 
 			'--cache-on-disk', '0',
 			"--cache-disk-size 5000", 
-			"--mp-size 100 --mp-num 4 --mp-retries 3 --st-blksize 131072 --read-retries-num 10 --read-retries-sleep 1 --download-retries-num 20 --download-retries-sleep 5",
+			"--mp-size 50", 
+			"--mp-num 4 --mp-retries 3 --st-blksize 131072 --read-retries-num 10 --read-retries-sleep 1 --download-retries-num 20 --download-retries-sleep 5",
+
 			"--log", mount[point]['log_path'] + "/yas4fs.log", 
 			"--log-backup-gzip",
 
-			"> /dev/null"])
+			"> /dev/null"]
+
+	mount[point]['command'] = " ".join(cmd)
+	# print mount[point]['command']
 
 	mount[point]['env'] = {
 		'AWS_ACCESS_KEY_ID': AWS_ACCESS_KEY_ID,
