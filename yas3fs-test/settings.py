@@ -29,11 +29,15 @@ base = {
 
 file = {
 	'small' : '/tmp/apache.saml.cache',
+	'medium' : '/tmp/junk',
 	'large' : '/home/ec10176/140127_pre.tar'
 }
 
 run_date = datetime.datetime.now()
 run_id = run_date.strftime("%y%m%d")
+
+# base wait time before checking if something should show up in boto
+boto_wait_time = 1
 
 mount_points = ('a', 'b')
 
@@ -82,7 +86,7 @@ for point in mount_points:
 			"--mp-size 50", 
 			"--mp-num 4 --mp-retries 3 --st-blksize 131072 --read-retries-num 10 --read-retries-sleep 1 --download-retries-num 20 --download-retries-sleep 5",
 
-			"--log", mount[point]['log_path'] + "/yas4fs.log", 
+			"--log", mount[point]['log_path'] + "/yas3fs.log", 
 			"--log-backup-gzip",
 
 			"> /dev/null"]
