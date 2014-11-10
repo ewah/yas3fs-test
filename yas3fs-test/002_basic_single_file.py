@@ -368,6 +368,8 @@ def test_create_via_cp_large_a():
 	if len(settings.mount_points) <=1:
 		return 
 
+	local_b_file =  settings.mount['b']['local_path'] + fname
+
 	# can the other mount see it?
 	local_b_stat = os.stat(local_b_file)
 	assert_equals(local_b_stat.st_size, src_stat.st_size)
@@ -401,6 +403,8 @@ def test_create_via_cp_a():
 
 	if len(settings.mount_points) <=1:
 		return 
+
+	local_b_file =  settings.mount['b']['local_path'] + fname
 
 	# can the other mount see it?
 	local_b_stat = os.stat(local_b_file)
@@ -562,7 +566,7 @@ def test_move_file_a():
 	assert_equals(target_s3_stat['st_gid'], 1000)
 
 	if len(settings.mount_points) > 1:
-	  assert_equals(os.path.isfile(local_b_file), False)
+		assert_equals(os.path.isfile(local_b_file), False)
 
 		target_local_b_file =  settings.mount['b']['local_path'] + target_fname
 
@@ -593,7 +597,7 @@ def test_move_file_then_append_a():
 
 	# can i access it locally?
 	local_stat = os.stat(local_file)
-	assert_equals(local_stat.st_size, src.st_size)
+	assert_equals(local_stat.st_size, src_stat.st_size)
 	assert_equals(local_stat.st_uid, 1000)
 	assert_equals(local_stat.st_gid, 1000)
 
@@ -603,7 +607,7 @@ def test_move_file_then_append_a():
 	# what does boto say?
 	k = settings.mount['a']['conn_bucket'].get_key(s3_file)
 	s3_stat = json.loads(k.metadata['attr'])
-	assert_equals(s3_stat['st_size'], src.st_size)
+	assert_equals(s3_stat['st_size'], src_stat.st_size)
 	assert_equals(s3_stat['st_uid'], 1000)
 	assert_equals(s3_stat['st_gid'], 1000)
 
@@ -612,7 +616,7 @@ def test_move_file_then_append_a():
 
 		# can the other mount see it?
 		local_b_stat = os.stat(local_b_file)
-		assert_equals(local_b_stat.st_size, src.st_size)
+		assert_equals(local_b_stat.st_size, src_stat.st_size)
 		assert_equals(local_b_stat.st_uid, 1000)
 		assert_equals(local_b_stat.st_gid, 1000)
 
@@ -625,7 +629,7 @@ def test_move_file_then_append_a():
 	assert_equals(os.path.isfile(local_file), False)
 	assert_equals(os.path.isfile(target_local_file), True)
 	target_local_stat = os.stat(target_local_file)
-	assert_equals(target_local_stat.st_size, src.st_size + 10)
+	assert_equals(target_local_stat.st_size, src_stat.st_size + 10)
 	assert_equals(target_local_stat.st_uid, 1000)
 	assert_equals(target_local_stat.st_gid, 1000)
 
@@ -634,17 +638,17 @@ def test_move_file_then_append_a():
 	# what does boto say?
 	target_k = settings.mount['a']['conn_bucket'].get_key(target_s3_file)
 	target_s3_stat = json.loads(target_k.metadata['attr'])
-	assert_equals(target_s3_stat['st_size'], src.st_size + 10)
+	assert_equals(target_s3_stat['st_size'], src_stat.st_size + 10)
 	assert_equals(target_s3_stat['st_uid'], 1000)
 	assert_equals(target_s3_stat['st_gid'], 1000)
 
 	if len(settings.mount_points) > 1:
-	  assert_equals(os.path.isfile(local_b_file), False)
+		assert_equals(os.path.isfile(local_b_file), False)
 
 		target_local_b_file =  settings.mount['b']['local_path'] + target_fname
 
 		# can the other mount see it?
 		target_local_b_stat = os.stat(target_local_b_file)
-		assert_equals(target_local_b_stat.st_size, src.st_size + 10)
+		assert_equals(target_local_b_stat.st_size, src_stat.st_size + 10)
 		assert_equals(target_local_b_stat.st_uid, 1000)
 		assert_equals(target_local_b_stat.st_gid, 1000)
