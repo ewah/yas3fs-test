@@ -36,7 +36,11 @@ def test_prep_s3():
 	for point in settings.mount:
 		# creates root directory and check that i pulls up. 
 		k = Key(settings.mount[point]['conn_bucket'])
-		k.key = settings.mount[point]['s3_path'] + "/"
+
+		if (settings.mount[point]['s3_path'] == "/"):
+			settings.mount[point]['s3_path'] = ""
+
+		k.key = settings.mount[point]['s3_path'] 
 
 		headers = { 'Content-Type': 'application/x-directory'}
 		headers.update(settings.mount[point]['default_headers'])
@@ -72,5 +76,3 @@ def test_mount_all():
 			time.sleep(1)
 
 		assert_equals(found, 1)
-
-
