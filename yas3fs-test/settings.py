@@ -35,6 +35,7 @@ file = {
 
 run_date = datetime.datetime.now()
 run_id = run_date.strftime("%y%m%d")
+hhmiss = run_date.strftime("%H%M%S")
 
 # base wait time before checking if something should show up in boto
 boto_wait_time = 1
