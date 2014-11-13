@@ -452,7 +452,7 @@ def test_create_sym_link_a():
 def test_rm_file_a():
 	# writes an empty file to mount point 'a'
 
-	fname = __get_base_dir() + __get_file_prefix()  + "move_source_rm_file_a.txt"
+	fname = __get_base_dir() + __get_file_prefix()  + "rm_file_a.txt"
 	local_file =  settings.mount['a']['local_path'] + fname
 	s3_file =  settings.mount['a']['s3_path'] + fname
 
@@ -544,7 +544,7 @@ def test_rmdir_dir_a():
 
 	assert_equals(os.path.isfile(local_file), False)
 
-	time.sleep(settings.boto_wait_time)
+	time.sleep(settings.boto_wait_time *4)
 
 	# what does boto say?
 	k = settings.mount['a']['conn_bucket'].get_key(s3_file)
@@ -554,7 +554,8 @@ def test_rmdir_dir_a():
 		local_b_file =  settings.mount['b']['local_path'] + fname
 
 		# can the other mount see it?
-		local_b_stat = os.stat(local_b_file)
+		# local_b_stat = os.stat(local_b_file)
+		logging.error(local_b_file)
 		assert_equals(os.path.exists(local_b_file), False)
 
 
