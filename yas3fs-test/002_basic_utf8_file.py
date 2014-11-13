@@ -353,8 +353,8 @@ def test_create_via_cp_large_a():
 	local_stat = os.stat(local_file)
 	assert_equals(local_stat.st_size, src_stat.st_size)
 
-	# takes 10 second to catch up?!
-	time.sleep(10)
+	# takes 15 second to catch up?!
+	time.sleep(15)
 
 	# what does boto say?
 	k = settings.mount['a']['conn_bucket'].get_key(s3_file)
@@ -451,7 +451,7 @@ def test_create_sym_link_a():
 def test_rm_file_a():
 	# writes an empty file to mount point 'a'
 
-	fname = __get_base_dir() + __get_file_prefix()  + "move_source_rm_file_a.txt"
+	fname = __get_base_dir() + __get_file_prefix()  + "rm_file_a.txt"
 	local_file =  settings.mount['a']['local_path'] + fname
 	s3_file =  settings.mount['a']['s3_path'] + fname
 
@@ -501,6 +501,61 @@ def test_rm_file_a():
 	# what does boto say?
 	k = settings.mount['a']['conn_bucket'].get_key(s3_file)
 	assert_equals(k, None)
+
+def test_rmdir_dir_a():
+	# writes an empty file to mount point 'a'
+
+	fname = __get_base_dir() + __get_file_prefix()  + "rmdir_dir_a/"
+	local_file =  settings.mount['a']['local_path'] + fname
+	s3_file =  settings.mount['a']['s3_path'] + fname
+
+	p = Popen("mkdir " + local_file, shell=True)
+	p.communicate()
+
+	p = Popen("chown 1000.1000 " + local_file, shell=True)
+	p.communicate()
+
+	# takes 1 second to catch up?!
+	time.sleep(settings.boto_wait_time * 3)
+
+	# what does boto say?
+	k = settings.mount['a']['conn_bucket'].get_key(s3_file)
+	s3_stat = json.loads(k.metadata['attr'])
+	assert_equals(s3_stat['st_size'], 4096) 	# 4096?
+	assert_equals(s3_stat['st_uid'], 1000)
+	assert_equals(s3_stat['st_gid'], 1000)
+	# logging.error(k.metadata)
+
+	if len(settings.mount_points) > 1:
+		local_b_file =  settings.mount['b']['local_path'] + fname
+
+		# can the other mount see it?
+		local_b_stat = os.stat(local_b_file)
+		assert_equals(os.path.exists(local_b_file), True)
+
+		# can i access it locally?
+		local_stat = os.stat(local_file)
+		assert_equals(local_stat.st_uid, 1000)
+		assert_equals(local_stat.st_gid, 1000)
+
+	p = Popen("rmdir " + local_file, shell=True)
+	p.communicate()
+
+	assert_equals(os.path.isfile(local_file), False)
+
+	time.sleep(settings.boto_wait_time *4)
+
+	# what does boto say?
+	k = settings.mount['a']['conn_bucket'].get_key(s3_file)
+	assert_equals(k, None)
+
+	if len(settings.mount_points) > 1:
+		local_b_file =  settings.mount['b']['local_path'] + fname
+
+		# can the other mount see it?
+		# local_b_stat = os.stat(local_b_file)
+		logging.error(local_b_file)
+		assert_equals(os.path.exists(local_b_file), False)
 
 
 def test_move_file_a():
@@ -651,3 +706,188 @@ def test_move_file_then_append_a():
 		assert_equals(target_local_b_stat.st_size, src_stat.st_size + 10)
 		assert_equals(target_local_b_stat.st_uid, 1000)
 		assert_equals(target_local_b_stat.st_gid, 1000)
+
+def test_move_dir_then_append_a():
+	# writes an empty file to mount point 'a'
+
+	dirname = __get_base_dir() + "/" + __get_file_prefix()  + "move_dir_then_append_source/"
+	fname = dirname + "a.txt"
+	local_dir =  settings.mount['a']['local_path'] + dirname
+	local_file =  settings.mount['a']['local_path'] + fname
+	s3_file =  settings.mount['a']['s3_path'] + fname
+
+	target_dirname = __get_base_dir() + "/" + __get_file_prefix()  + "move_dir_then_append_target_" + settings.hhmiss + "/"
+	target_fname = target_dirname  + "a.txt"
+	target_local_dir =  settings.mount['a']['local_path'] + target_dirname
+	target_local_file =  settings.mount['a']['local_path'] + target_fname
+	target_s3_file =  settings.mount['a']['s3_path'] + target_fname
+
+	p = Popen("mkdir  " + local_dir, shell=True)
+	p.communicate()
+
+	p = Popen("chown 1000.1000 " + local_dir, shell=True)
+	p.communicate()
+
+	p = Popen("cat " + settings.file['medium'] + " > " + local_file, shell=True)
+	p.communicate()
+
+	p = Popen("chown 1000.1000 " + local_file, shell=True)
+	p.communicate()
+
+	src_stat = os.stat(settings.file['medium'])
+
+	# can i access it locally?
+	local_stat = os.stat(local_dir)
+	assert_equals(local_stat.st_size, 4096)
+	assert_equals(local_stat.st_uid, 1000)
+	assert_equals(local_stat.st_gid, 1000)
+
+	local_stat = os.stat(local_file)
+	assert_equals(local_stat.st_size, src_stat.st_size)
+	assert_equals(local_stat.st_uid, 1000)
+	assert_equals(local_stat.st_gid, 1000)
+
+	# takes 1 second to catch up?!
+	time.sleep(settings.boto_wait_time)
+
+	# what does boto say?
+	k = settings.mount['a']['conn_bucket'].get_key(s3_file)
+	s3_stat = json.loads(k.metadata['attr'])
+	assert_equals(s3_stat['st_size'], src_stat.st_size)
+	assert_equals(s3_stat['st_uid'], 1000)
+	assert_equals(s3_stat['st_gid'], 1000)
+
+	if len(settings.mount_points) > 1:
+		local_b_file =  settings.mount['b']['local_path'] + fname
+
+		# can the other mount see it?
+		local_b_stat = os.stat(local_b_file)
+		assert_equals(local_b_stat.st_size, src_stat.st_size)
+		assert_equals(local_b_stat.st_uid, 1000)
+		assert_equals(local_b_stat.st_gid, 1000)
+
+	p = Popen("mv " + local_dir + " " + target_local_dir, shell=True)
+	p.communicate()
+
+	p = Popen("echo -n 1234567890 >> " + target_local_file, shell=True)
+	p.communicate()
+
+	assert_equals(os.path.isfile(local_file), False)
+
+	logging.error( "target_local_file " + target_local_file)
+	assert_equals(os.path.isfile(target_local_file), True)
+	target_local_stat = os.stat(target_local_file)
+	assert_equals(target_local_stat.st_size, src_stat.st_size + 10)
+	assert_equals(target_local_stat.st_uid, 1000)
+	assert_equals(target_local_stat.st_gid, 1000)
+
+	time.sleep(settings.boto_wait_time)
+
+	# what does boto say?
+	target_k = settings.mount['a']['conn_bucket'].get_key(target_s3_file)
+	target_s3_stat = json.loads(target_k.metadata['attr'])
+	assert_equals(target_s3_stat['st_size'], src_stat.st_size + 10)
+	assert_equals(target_s3_stat['st_uid'], 1000)
+	assert_equals(target_s3_stat['st_gid'], 1000)
+
+	if len(settings.mount_points) > 1:
+		assert_equals(os.path.isfile(local_b_file), False)
+
+		target_local_b_file =  settings.mount['b']['local_path'] + target_fname
+
+		# can the other mount see it?
+		target_local_b_stat = os.stat(target_local_b_file)
+		assert_equals(target_local_b_stat.st_size, src_stat.st_size + 10)
+		assert_equals(target_local_b_stat.st_uid, 1000)
+		assert_equals(target_local_b_stat.st_gid, 1000)
+
+
+def test_rm_file_then_recreate_a():
+	# writes an empty file to mount point 'a'
+
+	fname = __get_base_dir() + __get_file_prefix()  + "test_rm_file_then_recreate.txt." + settings.hhmiss
+	local_file =  settings.mount['a']['local_path'] + fname
+	s3_file =  settings.mount['a']['s3_path'] + fname
+
+	target_fname = __get_base_dir() + __get_file_prefix()  + "test_rm_file_then_recreate_target.txt"
+	target_local_file =  settings.mount['a']['local_path'] + target_fname
+	target_s3_file =  settings.mount['a']['s3_path'] + target_fname
+
+	p = Popen("cat " + settings.file['medium'] + " > " + local_file, shell=True)
+	p.communicate()
+
+	p = Popen("chown 1000.1000 " + local_file, shell=True)
+	p.communicate()
+
+	src_stat = os.stat(settings.file['medium'])
+
+	# can i access it locally?
+	local_stat = os.stat(local_file)
+	assert_equals(local_stat.st_size, src_stat.st_size)
+	assert_equals(local_stat.st_uid, 1000)
+	assert_equals(local_stat.st_gid, 1000)
+
+	# takes 1 second to catch up?!
+	time.sleep(settings.boto_wait_time)
+
+	# what does boto say?
+	k = settings.mount['a']['conn_bucket'].get_key(s3_file)
+	s3_stat = json.loads(k.metadata['attr'])
+	assert_equals(s3_stat['st_size'], src_stat.st_size)
+#	assert_equals(s3_stat['st_uid'], 1000)
+#	assert_equals(s3_stat['st_gid'], 1000)
+
+	if len(settings.mount_points) > 1:
+		local_b_file =  settings.mount['b']['local_path'] + fname
+
+		# can the other mount see it?
+		local_b_stat = os.stat(local_b_file)
+		assert_equals(local_b_stat.st_size, src_stat.st_size)
+		assert_equals(local_b_stat.st_uid, 1000)
+		assert_equals(local_b_stat.st_gid, 1000)
+
+	p = Popen("mv " + local_file + " " + target_local_file, shell=True)
+	p.communicate()
+
+	p = Popen("cat " + settings.file['small'] + " > " + local_file, shell=True)
+	p.communicate()
+
+	# timing... timing... timing...
+	# no checks happening here
+
+	p = Popen("rm " + local_file, shell=True)
+	p.communicate()
+
+	p = Popen("cat " + settings.file['medium'] + " > " + local_file, shell=True)
+	p.communicate()
+
+	# timing... timing... timing...
+	# no checks happening here
+
+	src_b_stat = os.stat(settings.file['medium'])
+
+	# can i access it locally?
+	local_stat = os.stat(local_file)
+	assert_equals(local_stat.st_size, src_b_stat.st_size)
+	assert_equals(local_stat.st_uid, 0)
+	assert_equals(local_stat.st_gid, 0)
+
+	# takes 1 second to catch up?!
+	time.sleep(settings.boto_wait_time)
+
+	# what does boto say?
+	k = settings.mount['a']['conn_bucket'].get_key(s3_file)
+	s3_stat = json.loads(k.metadata['attr'])
+	assert_equals(s3_stat['st_size'], src_b_stat.st_size)
+	assert_equals(s3_stat['st_uid'], 0)
+	assert_equals(s3_stat['st_gid'], 0)
+
+	if len(settings.mount_points) > 1:
+		local_b_file =  settings.mount['b']['local_path'] + fname
+
+		# can the other mount see it?
+		local_b_stat = os.stat(local_b_file)
+		assert_equals(local_b_stat.st_size, src_b_stat.st_size)
+		assert_equals(local_b_stat.st_uid, 0)
+		assert_equals(local_b_stat.st_gid, 0)
+
