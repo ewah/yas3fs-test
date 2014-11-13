@@ -12,6 +12,8 @@ from boto.s3.key import Key
 
 PYTHON = "/usr/bin/python"
 YAS3FS = "/usr/bin/yas3fs"
+S3CMD = "/usr/bin/s3cmd --server-side-encryption -c /home/ewah/.s3cfg"
+
 
 AWS_ACCESS_KEY_ID='AAAAAAAAAAAAAAAAAAAA'
 AWS_SECRET_ACCESS_KEY='XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
@@ -34,13 +36,18 @@ file = {
 }
 
 run_date = datetime.datetime.now()
-run_id = run_date.strftime("%y%m%d")
+yymmdd = run_date.strftime("%y%m%d")
 hhmiss = run_date.strftime("%H%M%S")
+run_id = yymmdd + 'e'
 
 # base wait time before checking if something should show up in boto
 boto_wait_time = 1
 
-mount_points = ('a', 'b')
+mount_points = ('a', 'b', 'c')
+# A:
+# B: identical to A
+# C: identical to A except not on the SQS
+
 
 mount = {}
 
@@ -59,15 +66,17 @@ for point in mount_points:
 	mount[point]['conn_bucket'] = mount[point]['conn'].get_bucket(mount[point]['s3_bucket'])
 	mount[point]['conn2_bucket'] = mount[point]['conn2'].get_bucket(mount[point]['s3_bucket'])
 
+	mount[point]['s3_fullpath'] = "s3://" +  mount[point]['s3_bucket'] +  mount[point]['s3_path']
+
 	cmd = [
 			PYTHON,
 			YAS3FS,
 			"--debug",
-			"s3://" +  mount[point]['s3_bucket'] + mount[point]['s3_path'],
+			mount[point]['s3_fullpath'],
 			mount[point]['local_path'],
 			]
 
-	if len(mount_points) > 1:
+	if len(mount_points) > 1 and point not in ('c'):
 		cmd += [
 			"--region", AWS_REGION,
 			"--topic", AWS_TOPIC,
