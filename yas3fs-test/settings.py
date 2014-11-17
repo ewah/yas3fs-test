@@ -83,6 +83,11 @@ for point in mount_points:
 			"--new-queue-with-hostname",
 		]
 
+	if point in ('c'):
+		cmd += [
+			"--read-only"
+		]
+
 	cmd += [
 			"--cache-path" , mount[point]['cache_path'], 
 
