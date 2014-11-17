@@ -69,7 +69,6 @@ def test_recheck_s3cmd_c():
 	local_file =  settings.mount['a']['local_path'] + fname
 	s3_file =  settings.mount['a']['s3_path'] + fname
 
-	local_b_file =  settings.mount['b']['local_path'] + fname
 	local_c_file =  settings.mount['c']['local_path'] + fname
 	s3_c_file =  settings.mount['c']['s3_path'] + fname
 	s3_c_fullfile =  settings.mount['c']['s3_fullpath'] + fname
@@ -84,7 +83,7 @@ def test_recheck_s3cmd_c():
 
 	src_stat = os.stat(settings.file['small'])
 
-	p = Popen("s3cmd put " + settings.file['small'] + " " + s3_c_fullfile, shell=True)
+	p = Popen(settings.S3CMD + " put " + settings.file['small'] + " " + s3_c_fullfile, shell=True)
 	p.communicate()
 
 	# takes 1 second to catch up?!
